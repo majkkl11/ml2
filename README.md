@@ -6,8 +6,14 @@ Everything is in `semestral_project.ipynb`. Sections 1 to 4 (loading, cleaning, 
 
 ## Setup
 
-1. The data is not in this repository. Unzip `football_data.zip` from MS Teams into a folder `data/` next to the notebook, so that the files are at `data/<country>/<league>/<season>.csv`.
-2. Create an environment and install the packages (Python 3.12):
+1. Clone the repository:
+
+   ```
+   git clone https://github.com/majkkl11/ml2.git
+   ```
+
+2. The data is not in this repository. Unzip `football_data.zip` from MS Teams into a folder `data/` next to the notebook, so that the files are at `data/<country>/<league>/<season>.csv`.
+3. Create an environment and install the packages (Python 3.12):
 
    ```
    python -m venv .venv
@@ -16,7 +22,7 @@ Everything is in `semestral_project.ipynb`. Sections 1 to 4 (loading, cleaning, 
    ```
 
    On macOS or Linux the second line is `source .venv/bin/activate`.
-3. Open `semestral_project.ipynb` and run it from top to bottom. It takes under a minute.
+4. Open `semestral_project.ipynb` and run it from top to bottom. It takes under a minute.
 
 ## Files
 
@@ -30,4 +36,29 @@ Everything is in `semestral_project.ipynb`. Sections 1 to 4 (loading, cleaning, 
 
 ## Working together
 
-Notebooks are hard to merge. Pull before you start, agree who is editing the notebook, and push when you are done. Before committing, run the notebook from top to bottom and save it, so the saved outputs match the code.
+Every team member can push directly to `main`. There is no review step, so a push is visible to the whole team immediately. That keeps things simple, but it means we have to be careful with the notebook: if two people change it at the same time, git cannot merge the two versions cleanly and one of them has to be redone by hand.
+
+The routine for every working session:
+
+1. **Say that you are taking the notebook.** Only one person edits `semestral_project.ipynb` at a time. Tell the others in the team chat before you start and when you are done.
+2. **Pull first**, so you start from the latest version:
+
+   ```
+   git pull
+   ```
+
+3. **Do your work**, then run the notebook from top to bottom and save it, so the saved outputs match the code.
+4. **Commit and push when you are done**, not days later:
+
+   ```
+   git add semestral_project.ipynb
+   git commit -m "Short description of what you did"
+   git push
+   ```
+
+Things to be careful about:
+
+* **If `git push` is rejected**, someone else pushed in the meantime. Do not force the push (`git push --force` deletes their work). Run `git pull` and, if git reports a conflict in the notebook, ask in the team chat before you try to fix it.
+* **Never commit the data.** The `data/` folder is ignored on purpose; do not add it with `git add -f`.
+* **Do not rename or reorder the existing sections** without telling the others; `HANDOVER.txt` refers to them by number.
+* **Small changes outside the notebook** (README, `HANDOVER.txt`) can be made by anyone at any time. They merge without problems.
