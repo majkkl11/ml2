@@ -1,0 +1,13 @@
+# the data stays local: unzip football_data.zip into data/ next to the notebook
+data/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# course material, shared in MS Teams
+ML2_Semestral_Project_Assignment_2026_2027.pdf

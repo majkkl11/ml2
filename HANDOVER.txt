@@ -1,0 +1,241 @@
+ML2 SEMESTRAL PROJECT - HANDOVER
+Status on 15 November 2026. Deadline: 30 November 2026.
+
+Everything is in semestral_project.ipynb. Sections 1 to 4 (loading, exploration,
+cleaning, feature engineering) are finished. Sections 5 to 9 (split, models,
+profit, correctness checks, conclusion) are empty headings and are yours.
+
+
+==============================================================================
+1. WHERE YOU START
+==============================================================================
+
+Run the notebook top to bottom. At the end of section 4 you have:
+
+  baseline_data       42,593 matches, the 40 baseline features
+  extended_data       the same matches, all 87 features (40 baseline + 47 extended)
+  baseline_features   list of the 40 baseline feature names
+  extended_features   list of the 47 extended feature names
+  id_cols             country, league, season, Div, Date, HomeTeam, AwayTeam
+  target              "over_2_5" (1 = three or more goals in the match)
+
+Train the baseline model on baseline_features and the extended model on
+baseline_features + extended_features. The id columns are in both datasets
+only for splitting and for accuracy per country. They are NOT features.
+
+The classes are balanced: 50.0% of matches are over 2.5 goals.
+
+Setup: Python 3.12, packages in requirements.txt (pandas 3.1, xgboost 3.4,
+scikit-learn 1.9). The unzipped data must sit in a folder data/ next to the
+notebook, as data/<country>/<league>/<season>.csv.
+
+
+==============================================================================
+2. BEFORE YOU SPLIT: THREE DECISIONS
+==============================================================================
+
+DECISION 1: split by time, never randomly.
+  A random split trains on matches played after the ones it is tested on.
+  Suggested: train on seasons up to 2022/23, validate on 2023/24, test on
+  2024/25. The season column is a string: "1920" = 2019/20, ..., "2425".
+  Tune and choose everything on the validation season. Touch the test season
+  once, at the end.
+
+DECISION 2: what to do with 2019/20.
+  It is a warm-up season for the features: 8.7% of the 10-match form values
+  are missing (under 0.5% in later seasons), only 1% of matches have 40 past
+  matches behind them, and every Elo rating starts at 1500. Either keep it in
+  training with weaker features, or use it only as history and train from
+  2020/21. Try both on the validation season.
+
+DECISION 3: accuracy per country is noisy.
+  The price of the data is set per market (country), so you need the accuracy
+  of both models per country. Matches per country in 2024/25:
+    England 2036, Spain 842, Scotland 768, Italy 760, France 612, Germany 612,
+    Turkey 342, Belgium 312, Netherlands 306, Portugal 306, Greece 233.
+  With about 300 matches, chance alone moves an accuracy by roughly 3
+  percentage points either way. The gap between the two models may be smaller
+  than that. Testing on two seasons (2023/24 and 2024/25) halves the problem
+  but costs training data. Decide this before you look at any test result,
+  and say in the notebook how reliable the per-country numbers are.
+
+CONSTRAINT: the Elo settings were tuned on 2020/21 to 2022/23.
+  K, home advantage and the division-change rule were chosen on those three
+  seasons. They must stay in the training set. If you move the split earlier,
+  the Elo settings have seen validation or test data. 2022/23 has to be in the 
+  training set.
+
+
+==============================================================================
+3. THE MODEL
+==============================================================================
+
+The plan is XGBoost (binary classification of over_2_5).
+
+Missing values: leave them. Do not impute and do not fill with 0.
+  XGBoost learns at every split which way to send missing values. Missing
+  shares are small: about 1.7% for most form features, 3.4% for the home-only
+  and away-only form, 2% for the matchup features, under 1% for the odds
+  features. Most gaps are structural (a team has fewer than 3 past matches),
+  and filling them with a mean or 0 would claim the team is average or
+  scoreless. If you also fit a model that cannot handle missing values (for
+  example logistic regression), impute the finished features with values
+  fitted on the training set only.
+
+Feature names: XGBoost rejects names containing [, ] or <. All 87 feature
+  names are safe. The raw odds columns (for example Avg<2.5) are not, but
+  they are not in the two datasets.
+
+Not included as features: the division or country itself. div_goals_365d
+  carries the scoring level of the division. You can add Div as a categorical
+  feature if you want to test it; it would be a baseline feature.
+
+Metrics: report accuracy, because the assignment's profit model uses it (A0
+  and A1). Also look at log loss when comparing variants, because it is less
+  jumpy than accuracy.
+
+Reference point: the market alone is right 57.4% of the time. That is the
+  accuracy of predicting "over" whenever prob_over_avg is above 0.5, and it
+  is between 56% and 58% in every season. The baseline model has no odds, so
+  expect it clearly below that. The extended model should reach about that
+  level; if it beats it, the match statistics add something beyond the odds.
+  Expect accuracies in the mid to high 50s and a small gap between the two
+  models. An accuracy far above 60% most likely means leakage.
+
+Feature importance: planned after training, to see which of the 87 features
+  matter and which can go. Candidates to turn out useless: elo_diff, the fouls
+  and yellow card features, prob_over_gap.
+
+
+==============================================================================
+4. WHAT WAS DONE TO THE DATA (sections 2 and 3)
+==============================================================================
+
+Raw data: 126 CSV files, 42,593 matches, 6 seasons (2019/20 to 2024/25),
+21 leagues, 11 countries. country, league and season come from the file path.
+
+Columns dropped:
+  - 51 columns in section 3.1: Betfair, Betfair Exchange and 1xBet (odds only
+    in 2024/25); Interwetten, VC Bet, William Hill and Bet&Win (stop during
+    2023/24 or 2024/25); Referee (missing outside England and Scotland).
+  - 14 market maximum columns (Max...) in section 3.6: they repeat the market
+    average (correlation 0.94 to 0.99) and had the most errors.
+  - 22 closing odds columns in section 4.4: not available when predicting.
+  What remains from the odds: opening odds of Bet365, Pinnacle and the market
+  average, and the Asian handicap size.
+
+Checked and found clean: no duplicates, no negative values, dates inside their
+season, valid kick-off times, home team different from away team, half-time
+goals not above full-time goals, results consistent with goals, team names
+consistent. No rows were removed at any point.
+
+
+==============================================================================
+5. THE FEATURES (section 4)
+==============================================================================
+
+Every form feature is an average over a team's PREVIOUS matches. The current
+match is never included. Windows: 10 matches (recent form), 40 matches
+(long-term strength), 5 matches (home-only or away-only form). A feature
+stays missing until the team has 3 earlier matches. Form carries over from
+one season to the next. Team-level features exist twice, with the prefix
+home_ and away_.
+
+BASELINE (40), built only from Div, Date, HomeTeam, AwayTeam, FTHG, FTAG, FTR
+(country, league and season follow from Div and Date):
+  goals_for, goals_against, points          windows 10 and 40, per team
+  over_share, clean_sheet_share,
+    failed_to_score_share                   window 10, per team
+  venue_goals_for, venue_goals_against,
+    venue_points                            window 5, per team
+  days_since_last_match                     per team
+  matches_in_data                           per team; past matches in the data,
+                                            capped at 40
+  season_stage                              matches played / scheduled length
+  div_goals_365d                            goals per match in the division,
+                                            previous 365 days
+  matchup_home_goals, matchup_away_goals,
+    matchup_total_goals                     windows 10 and 40; attack of one
+                                            team averaged with defence of the other
+  home_elo, away_elo, elo_diff, elo_abs_diff
+
+EXTENDED (47):
+  shots, shots on target, corners,
+    for and against                         windows 10 and 40, per team
+  fouls committed and suffered,
+    yellow cards own and opponent's         window 40 only, per team
+  matchup shots on target (home, away,
+    total)                                  windows 10 and 40
+  prob_over_avg, prob_over_pinnacle,
+    prob_over_gap                           over 2.5 probability from the odds,
+                                            bookmaker margin removed
+  prob_home, prob_draw, prob_away,
+    prob_favourite                          from the market average odds
+  handicap, handicap_abs                    Asian handicap of the home team
+
+Settings you may be asked about:
+  - Elo: start 1500, K = 20, home advantage 40 points; a promoted or new team
+    starts 50 points below the average of its new division, a relegated team
+    50 above. Ratings are only comparable within a division.
+  - season_stage: scheduled length is two matches against every other team,
+    with a small table of exceptions for Scotland, Greece and Belgium (from
+    2023/24). The Greek and Belgian play-off lengths were read off the match
+    counts in the data and are worth a second look.
+  - Not built: red cards, shot quality, head-to-head history, calendar
+    features (month, weekday, kick-off hour).
+
+Known limitation: a promoted or relegated team's form averages were earned in
+another division. Elo corrects for this, the averages do not.
+
+
+==============================================================================
+6. CHECKS ALREADY IN THE NOTEBOOK
+==============================================================================
+
+Data (sections 3.5, 3.6): outliers and value validation, with the same rules
+  run again after the replacements (all at 0 violations).
+
+Features (section 4.5):
+  - Recomputation: 74 of the 87 features are recalculated for 300 random
+    matches with separate code that only sees matches played strictly before
+    the match. All 22,200 values agree. This shows the features are computed
+    correctly and use no later information.
+  - Elo: the results of all matches from a cutoff day on are replaced, for four
+    cutoff days. The ratings of all matches up to and including that day stay
+    the same.
+  - The 9 odds features are checked in section 4.4 (probabilities between 0
+    and 1, each market sums to 1).
+  - The last cell of section 4.4 asserts that no original column is in either
+    feature list.
+  The recomputation is the slowest cell; the whole notebook still runs in
+  under a minute.
+
+Section 8 (correctness checks) now has only two empty subsections, 8.1 Models
+and 8.2 Prices. Its data subsection was removed, because the data and feature
+checks sit next to what they check (sections 3.5, 3.6, 4.4 and 4.5). The
+assignment (part 4.4) requires a section describing which checks were run on
+the data, the models and the final prices, what they showed, and what was
+changed because of them. So add the model and price checks, and one sentence
+in section 8 that points to the data and feature checks above.
+
+
+==============================================================================
+7. WHAT IS LEFT (assignment sections 4.3 and 5)
+==============================================================================
+
+  1. Section 5: the split (see part 2 above).
+  2. Section 6: train both models, tune on validation, report A0 and A1,
+     overall and per country.
+  3. Section 7: for each country, find the profit margin that maximises profit
+     for A0 and for A1, and the profit improvement, which is the maximum yearly
+     price for that market. Both an analytical solution and a numerical
+     verification are required. Parameters and formulas are in the assignment
+     PDF, part 3.
+  4. Section 8: correctness checks (see part 6 above).
+  5. Section 9: conclusion.
+  6. Top of the notebook: the "Team members" line is still empty.
+  7. Submission: one notebook that runs top to bottom with data/ next to it,
+     with all outputs saved. Re-run everything once at the end and save.
+
+Every team member must be able to explain every part, including the Elo
+rating and the leakage argument for the form features.
