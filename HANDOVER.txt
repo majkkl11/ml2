@@ -12,9 +12,9 @@ profit, correctness checks, conclusion) are empty headings and are yours.
 
 Run the notebook top to bottom. At the end of section 4 you have:
 
-  baseline_data       42,593 matches, the 40 baseline features
-  extended_data       the same matches, all 87 features (40 baseline + 47 extended)
-  baseline_features   list of the 40 baseline feature names
+  baseline_data       42,552 matches, the 41 baseline features
+  extended_data       the same matches, all 88 features (41 baseline + 47 extended)
+  baseline_features   list of the 41 baseline feature names
   extended_features   list of the 47 extended feature names
   id_cols             country, league, season, Div, Date, HomeTeam, AwayTeam
   target              "over_2_5" (1 = three or more goals in the match)
@@ -51,8 +51,8 @@ DECISION 2: what to do with 2019/20.
 DECISION 3: accuracy per country is noisy.
   The price of the data is set per market (country), so you need the accuracy
   of both models per country. Matches per country in 2024/25:
-    England 2036, Spain 842, Scotland 768, Italy 760, France 612, Germany 612,
-    Turkey 342, Belgium 312, Netherlands 306, Portugal 306, Greece 233.
+    England 2036, Spain 842, Scotland 768, Italy 760, France 612, Germany 611,
+    Turkey 341, Belgium 311, Netherlands 306, Portugal 306, Greece 233.
   With about 300 matches, chance alone moves an accuracy by roughly 3
   percentage points either way. The gap between the two models may be smaller
   than that. Testing on two seasons (2023/24 and 2024/25) halves the problem
@@ -62,8 +62,25 @@ DECISION 3: accuracy per country is noisy.
 CONSTRAINT: the Elo settings were tuned on 2020/21 to 2022/23.
   K, home advantage and the division-change rule were chosen on those three
   seasons. They must stay in the training set. If you move the split earlier,
-  the Elo settings have seen validation or test data. 2022/23 has to be in the 
+  the Elo settings have seen validation or test data. 2022/23 has to be in the
   training set.
+
+COVID: matches behind closed doors (section 3.7).
+  From May 2020 to June 2021 most matches were played without spectators.
+  Home wins fell from about 44% to 41% and over 2.5 goals from about 50% to
+  48%. The odds had already priced this in. The whole period lies in the
+  training seasons; validation and test are normal seasons with crowds.
+  - Do not drop both 2019/20 and this period from training: only about
+    14,600 training matches would remain.
+  - The baseline feature closed_doors (1 for these matches) lets the model
+    treat the period separately. It is 0 in validation and test, and it is
+    known before kick-off, so it is no leak. Keep it only if it helps on the
+    validation season. Training without the period is the alternative.
+  - If you drop these matches, drop them from baseline_data / extended_data,
+    never from data before section 4: they are the history for later form
+    features and Elo ratings.
+  - The Elo home advantage of 40 is a compromise between 30 (behind closed
+    doors) and 50 (with crowds); see the test after the Elo cell in 4.2.
 
 
 ==============================================================================
@@ -82,7 +99,7 @@ Missing values: leave them. Do not impute and do not fill with 0.
   example logistic regression), impute the finished features with values
   fitted on the training set only.
 
-Feature names: XGBoost rejects names containing [, ] or <. All 87 feature
+Feature names: XGBoost rejects names containing [, ] or <. All 88 feature
   names are safe. The raw odds columns (for example Avg<2.5) are not, but
   they are not in the two datasets.
 
@@ -102,7 +119,7 @@ Reference point: the market alone is right 57.4% of the time. That is the
   Expect accuracies in the mid to high 50s and a small gap between the two
   models. An accuracy far above 60% most likely means leakage.
 
-Feature importance: planned after training, to see which of the 87 features
+Feature importance: planned after training, to see which of the 88 features
   matter and which can go. Candidates to turn out useless: elo_diff, the fouls
   and yellow card features, prob_over_gap.
 
@@ -127,7 +144,14 @@ Columns dropped:
 Checked and found clean: no duplicates, no negative values, dates inside their
 season, valid kick-off times, home team different from away team, half-time
 goals not above full-time goals, results consistent with goals, team names
-consistent. No rows were removed at any point.
+consistent.
+
+Matches removed: 41 matches with an awarded result (final score but no
+half-time score and no statistics, typically 3:0 or 5:0), mainly Turkey
+2022/23 after the earthquake. They were never played: 40 of them would
+have been labelled over 2.5, and their invented results would have entered
+the form features and Elo ratings. 42,552 matches remain. No other rows
+were removed.
 
 
 ==============================================================================
@@ -141,7 +165,7 @@ stays missing until the team has 3 earlier matches. Form carries over from
 one season to the next. Team-level features exist twice, with the prefix
 home_ and away_.
 
-BASELINE (40), built only from Div, Date, HomeTeam, AwayTeam, FTHG, FTAG, FTR
+BASELINE (41), built only from Div, Date, HomeTeam, AwayTeam, FTHG, FTAG, FTR
 (country, league and season follow from Div and Date):
   goals_for, goals_against, points          windows 10 and 40, per team
   over_share, clean_sheet_share,
@@ -158,6 +182,8 @@ BASELINE (40), built only from Div, Date, HomeTeam, AwayTeam, FTHG, FTAG, FTR
     matchup_total_goals                     windows 10 and 40; attack of one
                                             team averaged with defence of the other
   home_elo, away_elo, elo_diff, elo_abs_diff
+  closed_doors                              1 for matches behind closed doors
+                                            (May 2020 - June 2021), else 0
 
 EXTENDED (47):
   shots, shots on target, corners,
@@ -196,7 +222,7 @@ Data (sections 3.5, 3.6): outliers and value validation, with the same rules
   run again after the replacements (all at 0 violations).
 
 Features (section 4.5):
-  - Recomputation: 74 of the 87 features are recalculated for 300 random
+  - Recomputation: 75 of the 88 features are recalculated for 300 random
     matches with separate code that only sees matches played strictly before
     the match. All 22,200 values agree. This shows the features are computed
     correctly and use no later information.
