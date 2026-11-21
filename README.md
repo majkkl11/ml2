@@ -29,6 +29,7 @@ Everything is in `semestral_project.ipynb`. Sections 1 to 4 (loading, cleaning, 
 | File | What it is |
 |---|---|
 | `semestral_project.ipynb` | the project notebook, which is also what we submit |
+| `modelling/` | one notebook per person for the models and the prices, added to the main notebook at the end |
 | `HANDOVER.txt` | summary of the work so far, with warnings and recommendations for the next steps |
 | `notes.txt` | description of the original data columns, from the data provider |
 | `requirements.txt` | Python packages |
@@ -65,25 +66,27 @@ Things to be careful about:
 
 ## Working in your own notebook
 
-The models (sections 5 and 6) and the prices (section 7) are developed in separate notebooks and added to `semestral_project.ipynb` at the end. You do not need to run the main notebook for that: you get the cleaned data as two files, `model_data.csv` and `model_features.json`, created in section 4.6 of the main notebook. Put both into a folder `exports/` next to your notebook. Like `data/`, this folder is not in the repository; never commit it.
+The models (sections 5 and 6) and the prices (section 7) are developed in separate notebooks in the folder `modelling/`, one per person (see `modelling/README.md`), and added to `semestral_project.ipynb` at the end. Everyone edits only their own notebook, so these notebooks can be pushed at any time without asking the others.
 
-Load them like this:
+You do not need to run the main notebook: you get the cleaned data as two files, `model_data.csv` and `model_features.json`, created in section 4.6 of the main notebook. Put both into the folder `exports/` in the main folder of the repository, next to `semestral_project.ipynb` (not inside `modelling/`). Like `data/`, this folder is not in the repository; never commit it.
+
+Load them like this from a notebook in `modelling/`:
 
 ```python
 import json
 import pandas as pd
 
-model_spec = json.load(open("exports/model_features.json", encoding="utf-8"))
+model_spec = json.load(open("../exports/model_features.json", encoding="utf-8"))
 id_cols, target = model_spec["id_cols"], model_spec["target"]
 baseline_features, extended_features = model_spec["baseline_features"], model_spec["extended_features"]
 
-extended_data = pd.read_csv("exports/model_data.csv", parse_dates=["Date"], dtype={"season": str})
+extended_data = pd.read_csv("../exports/model_data.csv", parse_dates=["Date"], dtype={"season": str})
 baseline_data = extended_data[id_cols + baseline_features + [target]]
 ```
 
 `dtype={"season": str}` matters: without it the season `"1920"` becomes the number 1920 and the split by season breaks.
 
 To make adding your work to the main notebook easy:
-* **Start from exactly these names**: `extended_data`, `baseline_data`, `baseline_features`, `extended_features`, `id_cols` and `target` exist in the main notebook too. Then your cells can be pasted after section 4 and only the loading cell above is dropped.
+* **Start from exactly these names**: `extended_data`, `baseline_data`, `baseline_features`, `extended_features`, `id_cols` and `target` exist in the main notebook too. Then your cells can be pasted after section 4 and only the loading cell above is dropped. Note that the main notebook sits one folder higher, so any other file path in your notebook changes too.
 * **Use the feature lists, not all columns.** The id columns (`country`, `season`, `Date`, ...) are for splitting and for results per country; they are not features.
 * **Do not change the data in your notebook.** If a feature should change, it is changed in section 4 of the main notebook and exported again, so that everyone works with the same data.
