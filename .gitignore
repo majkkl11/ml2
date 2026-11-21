@@ -11,3 +11,6 @@ __pycache__/
 
 # course material, shared in MS Teams
 ML2_Semestral_Project_Assignment_2026_2027.pdf
+
+# exported model data, derived from the course data: shared directly, not through git
+exports/
