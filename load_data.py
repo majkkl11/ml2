@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 
-DATA_DIR = Path(__file__).parent / "data"
+DATA_DIR = Path(__file__).parent / "modelling" / "data"
 
 
 def load_data(data_dir=DATA_DIR):

@@ -1,7 +1,7 @@
 ML2 SEMESTRAL PROJECT - HANDOVER
 Status on 21 November 2026. Deadline: 30 November 2026.
 
-Everything is in semestral_project.ipynb. Sections 1 to 4 (loading, exploration,
+Everything is in modelling/semestral_project.ipynb. Sections 1 to 4 (loading, exploration,
 cleaning, feature engineering) are finished. Sections 5 to 9 (split, models,
 profit, correctness checks, conclusion) are empty headings and are yours.
 The work is split between three people (part 7). Each works in a separate
@@ -14,8 +14,9 @@ the end.
 ==============================================================================
 
 You do not need to run the main notebook. Section 4.6 exports the data for
-the models to exports/model_data.csv and exports/model_features.json; you get
-both files directly (they are not in the repository). How to load them is in
+the models to modelling/exports/model_data.csv and
+modelling/exports/model_features.json; you get both files directly (they are
+not in the repository). How to load them is in
 README.md, "Working in your own notebook". Afterwards you have the same names
 as at the end of section 4 of the main notebook:
 
@@ -34,7 +35,7 @@ The classes are balanced: 49.9% of matches are over 2.5 goals.
 
 Setup: Python 3.12, packages in requirements.txt (pandas 3.1, xgboost 3.4,
 scikit-learn 1.9). The unzipped data must sit in a folder data/ next to the
-notebook, as data/<country>/<league>/<season>.csv.
+notebook, as modelling/data/<country>/<league>/<season>.csv.
 
 
 ==============================================================================

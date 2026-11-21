@@ -1,5 +1,7 @@
 # Modelling notebooks
 
+This folder holds the main notebook `semestral_project.ipynb`, which is what we submit, and the local folders `data/` (the raw data) and `exports/` (the data for the models). Neither folder is in the repository.
+
 Sections 5 to 9 of the project are developed here, one notebook per person (see part 7 of `HANDOVER.txt`):
 
 | Notebook | Person | Sections of the main notebook |
@@ -10,4 +12,4 @@ Sections 5 to 9 of the project are developed here, one notebook per person (see 
 
 Edit only your own notebook. Then nobody's push conflicts with anyone else's. If code is needed in more than one notebook (for example A's split and evaluation function, which B needs too), put it in a file in this folder, such as `evaluation.py`, and import it in both notebooks.
 
-The data comes from `exports/` in the main folder of the repository; how to load it is in the main `README.md`, "Working in your own notebook". At the end, the cells of these notebooks are added to `semestral_project.ipynb`.
+The data comes from `exports/` in this folder; how to load it is in the main `README.md`, "Working in your own notebook". At the end, the cells of these notebooks are added to `semestral_project.ipynb`.

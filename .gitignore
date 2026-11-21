@@ -1,4 +1,4 @@
-# the data stays local: unzip football_data.zip into data/ next to the notebook
+# the data stays local: unzip football_data.zip into modelling/data/, next to the notebook
 data/
 
 # Python
