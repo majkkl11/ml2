@@ -1,16 +1,23 @@
 ML2 SEMESTRAL PROJECT - HANDOVER
-Status on 15 November 2026. Deadline: 30 November 2026.
+Status on 21 November 2026. Deadline: 30 November 2026.
 
 Everything is in semestral_project.ipynb. Sections 1 to 4 (loading, exploration,
 cleaning, feature engineering) are finished. Sections 5 to 9 (split, models,
 profit, correctness checks, conclusion) are empty headings and are yours.
+The work is split between three people (part 7). Each works in a separate
+notebook on the exported data, and the notebooks are added to the main one at
+the end.
 
 
 ==============================================================================
 1. WHERE YOU START
 ==============================================================================
 
-Run the notebook top to bottom. At the end of section 4 you have:
+You do not need to run the main notebook. Section 4.6 exports the data for
+the models to exports/model_data.csv and exports/model_features.json; you get
+both files directly (they are not in the repository). How to load them is in
+README.md, "Working in your own notebook". Afterwards you have the same names
+as at the end of section 4 of the main notebook:
 
   baseline_data       42,552 matches, the 41 baseline features
   extended_data       the same matches, all 88 features (41 baseline + 47 extended)
@@ -23,7 +30,7 @@ Train the baseline model on baseline_features and the extended model on
 baseline_features + extended_features. The id columns are in both datasets
 only for splitting and for accuracy per country. They are NOT features.
 
-The classes are balanced: 50.0% of matches are over 2.5 goals.
+The classes are balanced: 49.9% of matches are over 2.5 goals.
 
 Setup: Python 3.12, packages in requirements.txt (pandas 3.1, xgboost 3.4,
 scikit-learn 1.9). The unzipped data must sit in a folder data/ next to the
@@ -87,7 +94,21 @@ COVID: matches behind closed doors (section 3.7).
 3. THE MODEL
 ==============================================================================
 
-The plan is XGBoost (binary classification of over_2_5).
+The plan is XGBoost (binary classification of over_2_5), with logistic
+regression as a benchmark. Both are trained on both feature sets, which gives
+four results:
+
+                         baseline features (A0)   extended features (A1)
+  XGBoost                        x                        x
+  logistic regression            x                        x
+
+The benchmark shows whether XGBoost is worth its complexity, and whether the
+gain from the extended data is similar in both models. If it is, the value of
+the data does not depend on how one model was tuned. Logistic regression
+needs the missing values filled and the features scaled, both fitted on the
+training seasons only, in one scikit-learn Pipeline. Cap extreme values such
+as days_since_last_match (up to about 1,470 days) for it. If time runs out,
+the benchmark is the first thing to drop.
 
 Missing values: leave them. Do not impute and do not fill with 0.
   XGBoost learns at every split which way to send missing values. Missing
@@ -224,7 +245,7 @@ Data (sections 3.5, 3.6): outliers and value validation, with the same rules
 Features (section 4.5):
   - Recomputation: 75 of the 88 features are recalculated for 300 random
     matches with separate code that only sees matches played strictly before
-    the match. All 22,200 values agree. This shows the features are computed
+    the match. All 22,500 values agree. This shows the features are computed
     correctly and use no later information.
   - Elo: the results of all matches from a cutoff day on are replaced, for four
     cutoff days. The ratings of all matches up to and including that day stay
@@ -246,22 +267,91 @@ in section 8 that points to the data and feature checks above.
 
 
 ==============================================================================
-7. WHAT IS LEFT (assignment sections 4.3 and 5)
+7. WHAT IS LEFT AND WHO DOES IT
 ==============================================================================
 
-  1. Section 5: the split (see part 2 above).
-  2. Section 6: train both models, tune on validation, report A0 and A1,
-     overall and per country.
-  3. Section 7: for each country, find the profit margin that maximises profit
-     for A0 and for A1, and the profit improvement, which is the maximum yearly
-     price for that market. Both an analytical solution and a numerical
-     verification are required. Parameters and formulas are in the assignment
-     PDF, part 3.
-  4. Section 8: correctness checks (see part 6 above).
-  5. Section 9: conclusion.
-  6. Top of the notebook: the "Team members" line is still empty.
-  7. Submission: one notebook that runs top to bottom with data/ next to it,
-     with all outputs saved. Re-run everything once at the end and save.
+PERSON A - split and baseline model (sections 5 and 6.1)
+  - The split and the decision about 2019/20 (part 2).
+  - One evaluation function that everyone uses: accuracy and log loss,
+    overall and per country.
+  - The baseline XGBoost, tuned on the validation season. Reports A0.
+  - The logistic regression pipeline (filling missing values, scaling,
+    model), on the baseline features.
+  - Test whether closed_doors helps on the validation season.
+
+PERSON B - extended model and comparison (sections 6.2, 6.3, 8.1)
+  - The extended XGBoost with A's split and evaluation function. Reports A1.
+  - A's logistic regression pipeline, unchanged, on the extended features.
+  - The overall comparison of the four results and of the 57.4% market
+    reference.
+  - Feature importance.
+  - The single run on the test season, once both models are final.
+  - The model checks (section 8.1).
+
+PERSON C - from accuracy to price (sections 7, 8.2, 9)
+  - The analytical optimum of the profit margin and its numerical
+    verification (both required by the assignment).
+  - The maximum yearly price per market.
+  - How reliable the per-country prices are: resample the test matches of
+    each country (bootstrap) to get a range for A0, A1 and the price instead
+    of one number. With 230 to 340 test matches in the smaller countries this
+    matters more than anything else in the result.
+  - Sensitivity of the price to the accuracy and to the assumed parameters
+    (for example k).
+  - Which markets to buy: data is sold per market, so recommend per market.
+  - The price checks (section 8.2), the conclusion, the "Team members" line
+    and the final full run.
+
+  Head start for C. With c = 0.03 + 0.3 * (1 - A), profit is maximised at a
+  profit margin of c / 2, and the maximum yearly profit per market is
+  4 * alpha * b / (27 * c^2). The maximum price for a market is this profit
+  at A1 minus this profit at A0. It depends only on the two accuracies,
+  because alpha, b and epsilon are the same in every market, and it is very
+  sensitive to them: one percentage point of accuracy moves it by thousands
+  of USD. C still has to derive and verify this in the notebook.
+
+INTERFACE BETWEEN THE PARTS
+  A and B save their predictions per match for the validation and test
+  seasons: country, season, the real result and the predicted probability of
+  each model. C works only from these predictions and never needs the models,
+  so C can start today with made-up predictions and plug in the real ones at
+  the end.
+
+ORDER AND TIMELINE
+  A is on the critical path: B cannot train anything comparable before the
+  split and the evaluation function exist.
+
+    23 Nov  A pushes the split and the evaluation function.
+            C has the profit code working on placeholder accuracies.
+    25 Nov  A finishes the tuned baseline. B has the extended model and the
+            logistic regression on the validation season.
+    27 Nov  B runs the test season once, finishes the comparison, feature
+            importance and model checks.
+    28 Nov  C plugs in the real accuracies, finishes prices, price checks and
+            the conclusion.
+    29 Nov  Everything is added to the main notebook, run once from top to
+            bottom and saved with outputs. Walkthrough in which everyone
+            explains every section.
+
+  All tuning and feature decisions are made on the validation season
+  2023/24. The test season 2024/25 is used once, at the very end.
+
+FEATURE CHANGES
+  The author of sections 1 to 4 reviews A's split and makes any change to the
+  features in section 4 of the main notebook, then exports the data again.
+  Nobody changes the data in their own notebook. A new feature goes into both
+  models if it is built from baseline columns.
+
+ADDING EVERYTHING UP
+  Use exactly the names of the main notebook (extended_data, baseline_data,
+  baseline_features, extended_features, id_cols, target). Then the cells of
+  each notebook can be pasted after section 4, and only their loading cell is
+  dropped. In section 8 also add one sentence that points to the data and
+  feature checks in sections 3.5, 3.6, 4.4 and 4.5.
+
+SUBMISSION
+  One notebook that runs top to bottom with data/ next to it, with all
+  outputs saved.
 
 Every team member must be able to explain every part, including the Elo
 rating and the leakage argument for the form features.
