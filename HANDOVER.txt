@@ -17,7 +17,7 @@ You do not need to run the main notebook. Section 4.6 exports the data for
 the models to modelling/exports/model_data.csv and
 modelling/exports/model_features.json; you get both files directly (they are
 not in the repository). How to load them is in
-README.md, "Working in your own notebook". Afterwards you have the same names
+modelling/README.md, "Loading the data in your own notebook". Afterwards you have the same names
 as at the end of section 4 of the main notebook:
 
   baseline_data       42,552 matches, the 41 baseline features
